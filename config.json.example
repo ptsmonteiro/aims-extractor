@@ -1,0 +1,11 @@
+{
+    "aims": {
+        "firefox_profile_path": "",
+        "url": "",
+        "username": "",
+        "password": ""
+    },
+    "sheets": {
+        "spreadsheet_id": ""
+    }
+}
