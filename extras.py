@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import requests
+import re
 
 airports_icao = None
 airports_iata = {}
@@ -57,6 +58,14 @@ def get_night_times(icao, date):
 def enhance_flight(flight):
     # Normalize date
     flight['Date'] = datetime.strptime(flight['Date'], '%d/%m/%y').date().isoformat()
+
+    # Simulator?
+    if len(flight['SimType']) > 0:
+        return flight
+
+    # PIC name
+    if len(flight['PicName']) > 0:
+        flight['PicName'] = flight['PicName'].title()
 
     # Some proper datetimes
     dep_datetime = datetime.strptime(flight['Date'] + ' ' + flight['DepTime'],
@@ -118,37 +127,14 @@ def enhance_flight(flight):
         print("Night flight from %s to %s (%s)" % (
             night_flight_begin, night_flight_end, night_flight_time))
         print("Total flight time %s" % (arr_datetime - dep_datetime))
-    
-    return flight
 
-    
+        #print(str(night_flight_time))
+        night_time_str = re.match('^(\d+:\d+):\d+', str(night_flight_time)).group(1)
+        flight['NightTime'] =  night_time_str
 
-    # determine when night flight begins
-    # determine night flight time
-    if night_flight_begin and night_flight_end:
-        seconds = (night_flight_end - night_flight_begin).total_seconds()
-        hours = seconds // 3600
-        minutes = (seconds % 3600) // 60
-        flight['FltTimeNight'] = '%d:%02d' % (hours, minutes)
     else:
-        flight['FltTimeNight'] = ''
-
-    print(flight)
-    print(flight['FltTime'])
-    print(flight['FltTimeNight'])
-
-    if len(flight['FltTimeNight']) > 0:
-        print(ntd)
-        print(nta)
-        print(night_begin)
-        print(night_end)
-        print(night_flight_begin)
-        print(night_flight_end)
-        #quit()
-
-    #print("Getting weather for flight")
-
-
+        flight['NightTime'] = ''
+    
     return flight
 
 def night_time_intersect(night_time_dep, night_time_arr, dep_time, arr_time):

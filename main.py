@@ -13,4 +13,4 @@ sheets.init()
 flights = csvlogs.get_incoming_flights()
 last = sheets.get_last_entry_and_subtotals()
 for f in flights:
-    sheets.insert_flight(extras.enhance_flight(f), last)
+    last = sheets.insert_flight(extras.enhance_flight(f), last)

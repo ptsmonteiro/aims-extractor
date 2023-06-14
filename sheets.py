@@ -1,8 +1,9 @@
 #from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 import json
-from datetime import date, time, datetime
+from datetime import date, datetime
 import re
+import time
 
 FLIGHTS_PER_PAGE = 20
 
@@ -63,7 +64,7 @@ def get_last_entry_and_subtotals():
     while (i > activity_entry['row']):
         if len(all_sim_dates[i]) > 0:
             sim_date = datetime.strptime(all_sim_dates[i], '%d-%m-%Y').date()
-            activity_entry = {'row': i, 'date': sim_date}
+            activity_entry = {'row': i + 1, 'date': sim_date}
         i = i - 1
 
     last = {'activity': activity_entry, 'subtotals': subtotals_entry}
@@ -74,18 +75,75 @@ def insert_flight(flight, last):
     print("Insert flight:")
     print(flight)
 
+    # Stop at future activities
+    if date.fromisoformat(flight['Date']) > date.today():
+        raise RuntimeError("Trying to import future flights (not yet taken place).")
+
+    # Skip older activities
+    if date.fromisoformat(flight['Date']) <= last['activity']['date']:
+        raise RuntimeError("Trying to import an older activity (maybe already inserted).")
+
     row = last['activity']['row'] + 1
 
     if (row == last['subtotals']['row']):
         row = last['subtotals']['row'] + 2
         last = create_new_subtotals(last)
 
-    sheet.update("A%s" % (row), flight['Date'])
-    sheet.update("B%s" % (row), flight['dep_icao'])
-    sheet.update("D%s" % (row), flight['arr_icao'])
+    date_range = ""
+    row_range = ""
+
+    # Simulator
+    if len(flight['SimType']) > 0:
+        rowdata = [
+            flight['Date'],
+            'A' + flight['ACType'],
+            flight['SimTime'],
+            flight['SimType']
+        ]
+        date_range = "W%s" % (row)
+        row_range = "W%s:Z%s" % (row,row)
+    # Flight
+    else:
+        rowdata = [
+            flight['Date'],
+            flight['dep_icao'],
+            flight['DepTime'],
+            flight['arr_icao'],
+            flight['ArrTime'],
+            'A' + flight['ACType'],
+            flight['Reg'],
+            '',
+            '',
+            flight['FltTime'], # multi pilot
+            flight['FltTime'], # total time
+            flight['PicName'],
+            flight['TKoffsDay'],
+            flight['TKoffsNight'],
+            flight['LandsDay'],
+            flight['LandsNight'],
+            flight['NightTime'],
+            flight['FltTime'], # IFR
+            flight['PIC'],
+            flight['CoPlt'],
+            '', # Dual
+            '', # Instructor
+        ]
+        date_range = "A%s" % (row)
+        row_range = "A%s:V%s" % (row,row)
+
+    print(rowdata)
+
+    time.sleep(2)
+    sheet.format(date_range, {
+        'numberFormat': {
+            'type': 'DATE', 'pattern': 'dd-mm-yyyy'
+        }
+    })
+    sheet.update(row_range, [rowdata], 
+        value_input_option = gspread.worksheet.ValueInputOption.user_entered)
 
     last['activity']['row'] = row
-    last['activity']['Date'] = flight['Date']
+    last['activity']['Date'] = date.fromisoformat(flight['Date'])
 
     return last
 
