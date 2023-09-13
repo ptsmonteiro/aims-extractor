@@ -61,7 +61,7 @@ def get_last_entry_and_subtotals():
 
     # last simulator
     i = len(all_sim_dates) - 1
-    while (i > activity_entry['row']):
+    while (i > activity_entry['row'] - 1):
         if len(all_sim_dates[i]) > 0:
             sim_date = datetime.strptime(all_sim_dates[i], '%d-%m-%Y').date()
             activity_entry = {'row': i + 1, 'date': sim_date}
