@@ -1,5 +1,6 @@
 import csv
 import glob
+import shutil
 
 def get_incoming_flights():
     flights = []
@@ -8,12 +9,13 @@ def get_incoming_flights():
     csv_files = glob.glob(path)
 
     for f in csv_files:
-        print("Processing %s" % f)
+        print(f"Reading flights from {f}")
         with open(f, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 flights.append(row)
 
-    # TODO move processed flight csv files
+        print(f"Moving {f} to processed folder...")
+        shutil.move(f, 'processed/')
 
     return flights
