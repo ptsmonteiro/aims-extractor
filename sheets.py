@@ -29,7 +29,7 @@ def init():
 
 def get_last_entry_date():
     last = get_last_entry_and_subtotals()
-    return last['activity']['date']
+    return last['activity']['datetime'] if last['activity'] else None
 
 def get_last_entry_and_subtotals():
     print("Getting last entry from Google Sheet Logbook")
@@ -42,7 +42,7 @@ def get_last_entry_and_subtotals():
     subtotals_entry = None
 
     i = len(all_flight_dates) - 1
-    while (not activity_entry or not subtotals_entry and i > 0):
+    while ((not activity_entry or not subtotals_entry) and i > 0):
 
         # 'TOTAL ACC' entry
         if (all_flight_dates[i] == 'TOTAL ACC'):
@@ -53,7 +53,7 @@ def get_last_entry_and_subtotals():
             if (not subtotals_entry):
                 subtotals_entry = {'row': i, 'page': last_page}
         # Date
-        elif (not re.search(r'PAGINA (\d+)$', all_flight_dates[i]) and len(all_flight_dates[i]) > 0):
+        elif re.search(r'\d+\-\d+\-\d+$', all_flight_dates[i]):
             flight_date = datetime.strptime(all_flight_dates[i], '%d-%m-%Y').date()
             activity_entry = {'row': i + 1, 'date': flight_date}
 
@@ -61,7 +61,7 @@ def get_last_entry_and_subtotals():
 
     # last simulator
     i = len(all_sim_dates) - 1
-    while (i > activity_entry['row'] - 1):
+    while (activity_entry and (i > activity_entry['row'] - 1)):
         if len(all_sim_dates[i]) > 0:
             sim_date = datetime.strptime(all_sim_dates[i], '%d-%m-%Y').date()
             activity_entry = {'row': i + 1, 'date': sim_date}
@@ -80,10 +80,14 @@ def insert_flight(flight, last):
         raise RuntimeError("Trying to import future flights (not yet taken place).")
 
     # Skip older activities
-    if date.fromisoformat(flight['Date']) <= last['activity']['date']:
+    flight_datetime = datetime.fromisoformat(flight['Date'] + 'T' + flight['DepTime'])
+    if last['activity'] and flight_datetime <= last['activity']['datetime']:
         raise RuntimeError("Trying to import an older activity (maybe already inserted).")
 
-    row = last['activity']['row'] + 1
+    if last['activity']:
+        row = last['activity']['row'] + 1
+    else:
+        row = last['subtotals']['row'] - FLIGHTS_PER_PAGE
 
     if (row == last['subtotals']['row']):
         row = last['subtotals']['row'] + 2
@@ -142,8 +146,10 @@ def insert_flight(flight, last):
     sheet.update(row_range, [rowdata], 
         value_input_option = gspread.worksheet.ValueInputOption.user_entered)
 
+    if not last['activity']: last['activity'] = {} 
+
     last['activity']['row'] = row
-    last['activity']['Date'] = date.fromisoformat(flight['Date'])
+    last['activity']['datetime'] = datetime.fromisoformat(flight['Date'] + ' ' + flight['DepTime'])
 
     return last
 
