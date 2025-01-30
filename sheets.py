@@ -54,8 +54,8 @@ def get_last_entry_and_subtotals():
                 subtotals_entry = {'row': i, 'page': last_page}
         # Date
         elif re.search(r'\d+\-\d+\-\d+$', all_flight_dates[i]):
-            flight_date = datetime.strptime(all_flight_dates[i], '%d-%m-%Y').date()
-            activity_entry = {'row': i + 1, 'date': flight_date}
+            flight_datetime = datetime.strptime(all_flight_dates[i], '%d-%m-%Y')
+            activity_entry = {'row': i + 1, 'datetime': flight_datetime}
 
         i = i - 1
 
@@ -63,8 +63,8 @@ def get_last_entry_and_subtotals():
     i = len(all_sim_dates) - 1
     while (activity_entry and (i > activity_entry['row'] - 1)):
         if len(all_sim_dates[i]) > 0:
-            sim_date = datetime.strptime(all_sim_dates[i], '%d-%m-%Y').date()
-            activity_entry = {'row': i + 1, 'date': sim_date}
+            sim_datetime = datetime.strptime(all_sim_dates[i], '%d-%m-%Y')
+            activity_entry = {'row': i + 1, 'datetime': sim_datetime}
         i = i - 1
 
     last = {'activity': activity_entry, 'subtotals': subtotals_entry}
